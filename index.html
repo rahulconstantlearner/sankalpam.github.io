@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vedic Sankalpam Generator</title>
+  
+  <!-- Astronomy Engine CDN for high-precision celestial calculations -->
+  <script src="https://cdn.jsdelivr.net/npm/astronomy-engine@2.1.19/astronomy.browser.min.js"></script>
+
   <style>
     :root {
       --saffron: #ff9933;
@@ -140,7 +144,7 @@
     }
 
     .sankalpam-text {
-      font-size: 1.25rem;
+      font-size: 1.2rem;
       line-height: 2;
       color: var(--maroon);
       background: #fffdf8;
@@ -152,7 +156,7 @@
 
     .panchangam-summary {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 10px;
       margin-top: 20px;
       padding-top: 15px;
@@ -178,8 +182,8 @@
 
 <div class="container">
   <header>
-    <h1>🚩 Dynamic Vedic Sankalpam Generator</h1>
-    <p class="subtitle">Location-Aware & Astronomical Time-Based Recitation</p>
+    <h1>🚩 Vedic Sankalpam Generator</h1>
+    <p class="subtitle">Location-Aware & Astronomical Time Recitation Engine</p>
   </header>
 
   <div class="grid">
@@ -192,20 +196,12 @@
       </div>
       <div class="form-group">
         <label for="gotram">Gotram (గోత్రం)</label>
-        <input type="text" id="gotram" placeholder="e.g., Bharadwaja / భారద్వాజ">
+        <input type="text" id="gotram" value="Bharadwaja">
       </div>
       <div class="row">
         <div class="form-group" style="flex:1;">
           <label for="name">Name (నామధేయం)</label>
-          <input type="text" id="name" placeholder="e.g., Rama Sharma">
-        </div>
-        <div class="form-group" style="flex:1;">
-          <label for="purpose">Purpose (లక్ష్యం)</label>
-          <select id="purpose">
-            <option value="dharma">Dharma Artha Kama Moksha</option>
-            <option value="puja">Devata Puja</option>
-            <option value="shanti">Loka Kalyana / Shanti</option>
-          </select>
+          <input type="text" id="name" value="Rama Sharma">
         </div>
       </div>
     </div>
@@ -228,14 +224,10 @@
           <input type="number" step="any" id="lon" value="78.4867">
         </div>
       </div>
-      <div class="form-group">
-        <label for="locationName">City / Region Name</label>
-        <input type="text" id="locationName" value="Hyderabad, India">
-      </div>
     </div>
   </div>
 
-  <!-- Output Options & Display -->
+  <!-- Output Display -->
   <div class="output-card">
     <div class="controls-bar">
       <h2>3. Generated Sankalpam</h2>
@@ -250,7 +242,7 @@
     </div>
 
     <div id="sankalpamBox" class="sankalpam-text">
-      Generating Sankalpam...
+      Calculating celestial coordinates...
     </div>
 
     <div class="panchangam-summary" id="panchangamSummary">
@@ -260,31 +252,34 @@
 </div>
 
 <script>
-  // Initialize default date/time
+  // Set default datetime input
   document.getElementById('datetime').value = new Date().toISOString().slice(0,16);
 
-  // Samvatsaras (60-year cycle)
+  // Canonical 60 Samvatsaras List
   const samvatsaras = [
-    "Prabhava","Vibhava","Shukla","Pramoda","Prajapati","Angirasa","Shrimukha","Bhava","Yuva","Dhatri",
-    "Eshwara","Bahudhanya","Pramathi","Vikrama","Vrushapraja","Angira","Srimukha","Bhava","Yuva","Dhatri",
-    "Eshwara","Bahudhanya","Pramathi","Vikram","Vikruthi","Khara","Nandana","Vijaya","Jaya","Manmadha",
-    "Durmukhi","Hevilambi","Vilambi","Vikari","Sharvari","Plava","Shubhakruthi","Shobhakruthi","Krodhi","Vishvavasu",
-    "Parabhava","Plavanga","Kilaka","Saumya","Sadharana","Vrodhakruthi","Paridhavi","Pramadicha","Ananda","Rakshasa",
-    "Nala","Pingala","Kalayukti","Siddharthin","Roudra","Durmati","Dundubhi","Rudhirodgari","Raktakshi","Krodhana"
+    "Prabhava", "Vibhava", "Shukla", "Pramoda", "Prajapati", "Angirasa", "Shrimukha", "Bhava", "Yuva", "Dhatri",
+    "Eshwara", "Bahudhanya", "Pramathi", "Vikrama", "Vrisha", "Chitrabanu", "Subhanu", "Tarana", "Parthiva", "Vyaya",
+    "Sarvajitu", "Sarvadhari", "Virodhi", "Vikruthi", "Khara", "Nandana", "Vijaya", "Jaya", "Manmadha", "Durmukhi",
+    "Hevilambi", "Vilambi", "Vikari", "Sharvari", "Plava", "Shubhakruthi", "Shobhakruthi", "Krodhi", "Visvavasu", "Parabhava",
+    "Plavanga", "Kilaka", "Saumya", "Sadharana", "Virodhakruthi", "Paridhavi", "Pramadicha", "Ananda", "Rakshasa", "Nala",
+    "Pingala", "Kalayukti", "Siddharthin", "Roudra", "Durmati", "Dundubhi", "Rudhirodgari", "Raktakshi", "Krodhana", "Kshaya"
   ];
 
-  const masams = ["Chaitra", "Vaishakha", "Jyeshtha", "Ashadha", "Shravana", "Bhadrapada", "Ashvin", "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"];
-  const tithis = ["Prathama", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shasthi", "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima/Amavasya"];
-  const vaasara = ["Bhanuvaasara", "Somavaasara", "Mangalavaasara", "Budhavaasara", "Guruvaasara", "Shukravaasara", "Shanivaasara"];
+  const tithiNames = [
+    "Prathama", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shasthi",
+    "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi",
+    "Trayodashi", "Chaturdashi", "Purnima / Amavasya"
+  ];
+
+  const vaasaraNames = ["Bhanuvaasara", "Somavaasara", "Mangalavaasara", "Budhavaasara", "Guruvaasara", "Shukravaasara", "Shanivaasara"];
 
   function getLocation() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(pos => {
         document.getElementById('lat').value = pos.coords.latitude.toFixed(4);
         document.getElementById('lon').value = pos.coords.longitude.toFixed(4);
-        document.getElementById('locationName').value = "Current GPS Location";
         generateSankalpam();
-      }, () => alert("Unable to retrieve location. Please enter manually."));
+      }, () => alert("Could not fetch location automatically. Key in coordinates manually."));
     } else {
       alert("Geolocation is not supported by your browser.");
     }
@@ -295,7 +290,6 @@
     let varsha = "Bharata Varshe";
     let khanda = "Bharata Khande";
     
-    // Simple hemisphere/geographic mapping logic
     if (lon < -30 || lon > 170) {
       dweepa = "Krauncha Dweepe";
       varsha = "Paschima Deshe";
@@ -307,38 +301,55 @@
     return { dweepa, varsha, khanda };
   }
 
-  function calculatePanchangam(date) {
-    // Simplified astronomical approximation for demonstration
-    const year = date.getFullYear();
-    const samvatsaraIndex = (year - 1987) % 60;
-    const samvatsara = samvatsaras[samvatsaraIndex < 0 ? samvatsaraIndex + 60 : samvatsaraIndex];
+  function calculatePanchangam(dateObj) {
+    // 1. Astronomy Engine calculations
+    const time = new Astronomy.AstroTime(dateObj);
+    const sunGeo = Astronomy.GeoVector('Sun', time, true);
+    const moonGeo = Astronomy.GeoVector('Moon', time, true);
+
+    const sunEcl = Astronomy.Ecliptic(sunGeo);
+    const moonEcl = Astronomy.Ecliptic(moonGeo);
+
+    // Elongation angle (Moon vs Sun)
+    let elongation = moonEcl.elon - sunEcl.elon;
+    if (elongation < 0) elongation += 360;
+
+    // Tithi & Paksha
+    const tithiIndex = Math.floor(elongation / 12);
+    const isShukla = tithiIndex < 15;
+    const paksha = isShukla ? "Shukla Pakshe" : "Krishna Pakshe";
+    const tithi = tithiNames[tithiIndex % 15];
+
+    // Ayana
+    const ayana = (sunEcl.elon >= 270 || sunEcl.elon < 90) ? "Uttarayane" : "Dakshinayane";
+
+    // Samvatsara calculation anchored around Spring Equinox / Ugadi transition (~March 20)
+    const year = dateObj.getFullYear();
+    let effectiveYear = year;
+    if (dateObj.getMonth() < 2 || (dateObj.getMonth() === 2 && dateObj.getDate() < 20)) {
+      effectiveYear -= 1;
+    }
     
-    const dayOfWeek = date.getDay();
-    const dayName = vaasara[dayOfWeek];
+    let samIndex = (effectiveYear - 1987) % 60;
+    if (samIndex < 0) samIndex += 60;
+    const samvatsara = samvatsaras[samIndex];
 
-    const monthIndex = date.getMonth();
-    const masam = masams[monthIndex];
+    const vaasara = vaasaraNames[dateObj.getDay()];
 
-    const dayOfMonth = date.getDate();
-    const paksha = dayOfMonth <= 15 ? "Shukla Pakshe" : "Krishna Pakshe";
-    const tithi = tithis[(dayOfMonth - 1) % 15];
-
-    const ayana = (monthIndex >= 0 && monthIndex <= 5) ? "Uttarayane" : "Dakshinayane";
-
-    return { samvatsara, ayana, masam, paksha, tithi, vaasara: dayName };
+    return { samvatsara, ayana, paksha, tithi, vaasara };
   }
 
   function generateSankalpam() {
     const dtVal = document.getElementById('datetime').value;
-    const date = dtVal ? new Date(dtVal) : new Date();
-    const gotram = document.getElementById('gotram').value.trim() || "[మీ గోత్రం / Your Gotram]";
-    const name = document.getElementById('name').value.trim() || "[మీ పేరు / Your Name]";
+    const dateObj = dtVal ? new Date(dtVal) : new Date();
+    const gotram = document.getElementById('gotram').value.trim() || "[గోత్రం]";
+    const name = document.getElementById('name').value.trim() || "[పేరు]";
     const lat = parseFloat(document.getElementById('lat').value);
     const lon = parseFloat(document.getElementById('lon').value);
     const lang = document.getElementById('langSelect').value;
 
     const geo = getGeographicContext(lat, lon);
-    const p = calculatePanchangam(date);
+    const p = calculatePanchangam(dateObj);
 
     let text = "";
 
@@ -347,37 +358,35 @@
 శుభే శోభనే ముహూర్తే, అద్య బ్రహ్మణః ద్వితీయ పరార్థే, శ్వేతవరాహ కల్పే, వైవస్వత మన్వంతరే, అష్టావింశతితమే కలియుగే, ప్రథమ పాదే,
 ${geo.dweepa}, ${geo.varsha}, ${geo.khanda}, మేరోః దక్షిణ దిగ్భాగే,
 
-${p.samvatsara} నామ సంవత్సరే, ${p.ayana}, శ్రీ ${p.masam} మాసే, ${p.paksha}, ${p.tithi} తిథౌ, ${p.vaasara} యుక్తాయామ్,
+${p.samvatsara} నామ సంవత్సరే, ${p.ayana}, ${p.paksha}, ${p.tithi} తిథౌ, ${p.vaasara} యుక్తాయామ్,
 
 ${gotram} గోత్రోద్భవస్య, ${name} నామధేయస్య,
-సమస్త పాపక్షయార్థం, ధర్మ-అర్థ-కామ-మోక్ష చతుర్విధ ఫల పురుషార్థ సిద్ధ్యర్థం, మమ ఉపాత్త సమస్త దురితక్షయ ద్వారా శ్రీ పరమేశ్వర (లేదా దేవుని) ప్రీత్యర్థం శుభ సంకల్పం కరోమి।`;
+సమస్త పాపక్షయార్థం, ధర్మ-అర్థ-కామ-మోక్ష చతుర్విధ ఫల పురుషార్థ సిద్ధ్యర్థం, మమ ఉపాత్త సమస్త దురితక్షయ ద్వారా శ్రీ పరమేశ్వర ప్రీత్యర్థం శుభ సంకల్పం కరోమి।`;
     } else if (lang === "sanskrit") {
       text = `ॐ ममोपात्त समस्त दुरितक्षय द्वारा श्रीपरमेश्वर प्रीत्यर्थम्,
 शुभे शोभने मुहूर्ते, अद्य ब्रह्मणः द्वितीय परार्धे, श्वेतवराह कल्पे, वैवस्वत मन्वन्तरे, अष्टाविंशतितमे कलियुगे, प्रथम पादे,
 ${geo.dweepa}, ${geo.varsha}, ${geo.khanda}, मेरोः दक्षिण दिग्भागे,
 
-${p.samvatsara} नाम संवत्सरे, ${p.ayana}, श्री ${p.masam} मासे, ${p.paksha}, ${p.tithi} तिथौ, ${p.vaasara} युक्तायाम्,
+${p.samvatsara} नाम संवत्सरे, ${p.ayana}, ${p.paksha}, ${p.tithi} तिथौ, ${p.vaasara} युक्तायाम्,
 
 ${gotram} गोत्रोद्भवस्य, ${name} नामधेयस्य,
 समस्त पापक्षयार्थम्, धर्म-अर्थ-काम-मोक्ष चतुर्विध फल पुरुषार्थ सिद्ध्यर्थम्, मम उपात्त समस्त दुरितक्षय द्वारा श्री परमेश्वर प्रीत्यर्थम् शुभ संकल्पम् करोमि।`;
     } else {
       text = `Om Mamopatta Samasta Duritakshaya Dvara Shri Parameshwara Preetyartham,
-Shubhe Shobhane Muhurte, Adya Brahmanah Dvitiya Parardhe, Shweta Varaha Kalpe, Vaivasvata Manvantare, Ashtavimshatitame Kaliyuge, Prathama Pade,
+Shubhe Shobhane Muhurte, Adya Brahmanah Dvitiya Parardhe, Shweta Varaha Kalpe, Vaivasvata Manvantare, Kaliyuge Prathama Pade,
 ${geo.dweepa}, ${geo.varsha}, ${geo.khanda}, Meroḥ Dakshina Digbhage,
 
-${p.samvatsara} Nama Samvatsare, ${p.ayana}, Shri ${p.masam} Mase, ${p.paksha}, ${p.tithi} Tithau, ${p.vaasara} Yuktayam,
+${p.samvatsara} Nama Samvatsare, ${p.ayana}, ${p.paksha}, ${p.tithi} Tithau, ${p.vaasara} Yuktayam,
 
 ${gotram} Gotrodbhavasya, ${name} Namadheyasya,
-Samasta Papakshayartham, Dharma-Artha-Kama-Moksha Chaturvidha Phala Purushartha Siddhyartham, Mam Upatta Samasta Duritakshaya Dvara Shri Parameshwara Preetyartham Shubha Sankalpam Karomi.`;
+Samasta Papakshayartham, Dharma-Artha-Kama-Moksha Chaturvidha Phala Purushartha Siddhyartham Shubha Sankalpam Karomi.`;
     }
 
     document.getElementById('sankalpamBox').innerText = text;
 
-    // Summary Card
     document.getElementById('panchangamSummary').innerHTML = `
       <div class="p-item"><strong>Samvatsara</strong>${p.samvatsara}</div>
       <div class="p-item"><strong>Ayana</strong>${p.ayana}</div>
-      <div class="p-item"><strong>Masam</strong>${p.masam}</div>
       <div class="p-item"><strong>Paksha</strong>${p.paksha}</div>
       <div class="p-item"><strong>Tithi</strong>${p.tithi}</div>
       <div class="p-item"><strong>Vaasara</strong>${p.vaasara}</div>
@@ -389,20 +398,21 @@ Samasta Papakshayartham, Dharma-Artha-Kama-Moksha Chaturvidha Phala Purushartha 
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.85; // Slightly slower for clear mantra recitation
+      utterance.rate = 0.85;
       window.speechSynthesis.speak(utterance);
     } else {
-      alert("Text-to-speech is not supported in this browser.");
+      alert("Text-to-speech is not supported on this browser.");
     }
   }
 
-  // Event Listeners for Real-time Updates 
-  ['datetime', 'gotram', 'name', 'lat', 'lon', 'purpose'].forEach(id => {
+  // Real-time Event Listeners
+  ['datetime', 'gotram', 'name', 'lat', 'lon'].forEach(id => {
     document.getElementById(id).addEventListener('input', generateSankalpam);
   });
 
-  // Initial Run
+  // Run on start
   generateSankalpam();
 </script>
+
 </body>
 </html>
